@@ -16,6 +16,9 @@
 #   ./cliplex renommer <projet> <titre>         change le titre (et le nom du dossier) d'une vidéo
 #   ./cliplex brouillon <projet>                brouillon à valider (demi-résolution), rendu si besoin, puis ouvert
 #   ./cliplex exporter <projet> [4k|hd]         export final après validation (4K par défaut)
+#   ./cliplex script <titre> [fichier]          crée un script à lire au prompteur (texte d'un fichier, ou collé ensuite)
+#   ./cliplex scripts                           liste les scripts
+#   ./cliplex prompteur <script>                ouvre le prompteur sur le Wi-Fi : adresse pour le téléphone et pour ce Mac
 #   ./cliplex dossier [chemin]                  affiche (ou change) le dossier Cliplex
 set -e
 DEPOT="$(cd "$(dirname "$0")" && pwd)"
@@ -151,7 +154,35 @@ case "$cmd" in
     if [ -f "$C/style/style.md" ]; then echo "  $(head -1 "$C/style/style.md" | sed 's/^# //')"; else echo "  pas encore créé"; fi
     echo; echo "VIDÉOS"
     n=0; for f in "$C"/projets/*/projet.json; do [ -f "$f" ] || continue; n=$((n+1)); py -c "import json,sys;p=json.load(open(sys.argv[1]));print(f\"  {p['statut']:<10}{p['id']}  {p.get('genre','formation')} {p['format']}\")" "$f"; done
-    if [ $n -eq 0 ]; then echo "  aucune"; fi ;;
+    if [ $n -eq 0 ]; then echo "  aucune"; fi
+    echo; echo "SCRIPTS"
+    n=0; for f in "$C"/scripts/*/script.json; do [ -f "$f" ] || continue; n=$((n+1)); py -c "import json,sys;s=json.load(open(sys.argv[1]));print(f\"  {s['id']}  {s['titre']}\")" "$f"; done
+    if [ $n -eq 0 ]; then echo "  aucun"; fi ;;
+
+  script)
+    # Même format que l'app : scripts/<id>/script.json (titre, dates) et script.md (le texte).
+    titre="${1:?titre}"; R="$C/scripts"; mkdir -p "$R"; id="$(libre "$(slug "$titre" 48)" script "$R")"
+    mkdir -p "$R/$id"
+    if [ -n "$2" ]; then [ -f "$2" ] || { echo "Fichier introuvable : $2"; exit 1; }; cp "$2" "$R/$id/script.md"
+    elif [ ! -t 0 ]; then cat > "$R/$id/script.md"
+    else : > "$R/$id/script.md"; fi
+    py -c "import json,sys;t=sys.argv[3];json.dump(dict(id=sys.argv[2],titre=sys.argv[4],creeLe=t,majLe=t),open(sys.argv[1],'w'),indent=2,ensure_ascii=False)" \
+      "$R/$id/script.json" "$id" "$(maintenant)" "$titre"
+    echo "$id" ;;
+
+  scripts)
+    n=0; for f in "$C"/scripts/*/script.json; do [ -f "$f" ] || continue; n=$((n+1)); py -c "
+import json,sys,os
+s=json.load(open(sys.argv[1])); md=os.path.join(os.path.dirname(sys.argv[1]),'script.md')
+mots=len([m for l in open(md).read().splitlines() if not l.startswith('#') for m in l.split()]) if os.path.exists(md) else 0
+print(f\"{s['id']}  {s['titre']}  ({mots} mots)\")" "$f"; done
+    if [ $n -eq 0 ]; then echo "Aucun script."; fi ;;
+
+  prompteur)
+    id="${1:?script}"; [ -f "$C/scripts/$id/script.json" ] || { echo "Script introuvable : $id"; exit 1; }
+    # Adresse du Mac sur le Wi-Fi (ou le câble), celle que le téléphone peut joindre.
+    ip="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)"
+    exec "$(command -v "$O/python/bin/python" || command -v python3)" -I "$MOTEUR/prompteur/servir.py" "$C" "$id" "$ip" ;;
 
   installer)
     for o in ${1:-$OUTILS}; do
@@ -298,6 +329,6 @@ print('\n'.join([f\"Titre : {p['titre']}\",f\"Genre : {G[p.get('genre','formatio
     [ -z "$CLIPLEX_SANS_OUVRIR" ] && open -R "$M/montage.mp4" || true
     echo "$M/montage.mp4" ;;
 
-  aide|help|-h|--help) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//' ;;
-  *) echo "Commande inconnue : $cmd"; echo; sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+  aide|help|-h|--help) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//' ;;
+  *) echo "Commande inconnue : $cmd"; echo; sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac

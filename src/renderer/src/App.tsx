@@ -6,11 +6,11 @@ import { Bienvenue } from './pages/Bienvenue'
 import { Inspirations } from './pages/Inspirations'
 import { Montage } from './pages/Montage'
 import { MonStyle } from './pages/Style'
+import { Tournage } from './pages/Tournage'
 
 const A_VENIR: Partial<Record<Page, { titre: string; texte: string }>> = {
   idees: { titre: 'Idées et scripts', texte: 'Tes idées par thème, ta trame dictée à la voix et mise en forme en script.' },
   planning: { titre: 'Planning', texte: 'Ton calendrier de publication, avec les créneaux que tu choisis.' },
-  tournage: { titre: 'Tournage', texte: 'Le prompteur sur ton téléphone, guidé par ta voix, et des fonds d’écran pour ton décor.' },
   sons: { titre: 'Sons et musiques', texte: 'Une banque de sons libres de droits, et les tiens.' }
 }
 
@@ -43,6 +43,7 @@ export default function App() {
       {page === 'accueil' && <Accueil projets={projets} onPage={setPage} />}
       {page === 'montage' && <Montage onChange={rafraichir} />}
       {page === 'inspirations' && <Inspirations onStyle={() => setPage('style')} />}
+      {page === 'tournage' && <Tournage />}
       {page === 'style' && <MonStyle onInspirations={() => setPage('inspirations')} />}
       {A_VENIR[page] && <AVenir {...A_VENIR[page]!} />}
     </Coquille>

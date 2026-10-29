@@ -19,6 +19,7 @@ Au début de chaque conversation de studio, lance `./cliplex etat`, puis :
 - outils manquants, aucune inspiration ou pas de style : skill `setup` (premier lancement guidé, `/setup`) ;
 - elle veut ajouter ou revoir des inspirations, ou changer son style : skill `style` ;
 - elle veut monter une vidéo, retoucher un brouillon ou exporter : skill `monter`.
+- elle veut lire son script au prompteur pendant qu'elle tourne : `./cliplex script <titre> [fichier]` (ou écris le texte dans `scripts/<id>/script.md`), puis `./cliplex prompteur <script>` en arrière-plan. Donne-lui l'adresse pour son téléphone (même Wi-Fi) et celle pour le Mac, et dis-lui que le prompteur reste ouvert jusqu'à ce qu'elle demande de le fermer.
 
 Règles du studio :
 - **Tout reste dans un seul dossier** (`espace/` dans le dépôt, ou le dossier choisi dans l'app ; `./cliplex dossier` l'affiche). Rien n'est installé ailleurs, sans mot de passe ni Homebrew. Supprimer le dossier efface tout.
@@ -48,17 +49,18 @@ Electron + electron-vite, React 19, Tailwind 3, TypeScript. `npm install`, `npm 
 ```
 src/main/        processus principal : outils, projets, inspirations, style, moteur de montage, Claude
 src/preload/     pont window.cliplex (sandbox)
-src/renderer/    interface React : Bienvenue (accueil en 6 étapes), Inspirations, Style, Montage
+src/renderer/    interface React : Bienvenue (accueil en 6 étapes), Inspirations, Style, Tournage (prompteur), Montage
 src/shared/      types communs (Api, Projet, Inspiration, Style, Activite)
 moteur/outils/       preparer.sh, compiler.py, rendre.sh, tester-rendu.sh, transcription (whisper local)
 moteur/studio/       studio Remotion (composants de montage, éléments de formation)
 moteur/claude/       instructions.md : les règles du monteur, copiées dans chaque montage
 moteur/inspirations/ mesurer.sh et les consignes d'analyse et de synthèse du style
+moteur/prompteur/    prompteur.html (la page du téléphone), servir.py (serveur de ./cliplex ; l'app a le sien, src/main/prompteur.ts)
 moteur/sons/         kit d'effets sonores libre (fabriquer.py le génère, kit.json le décrit)
 cliplex              le même parcours en ligne de commande (studio sans l'app)
 ```
 
-Le dossier Cliplex de la personne : `outils/` (ffmpeg, Node, Python, modèles, studio, Claude Code s'il manquait), `projets/<id>/` (projet.json, rushs/, montage/), `inspirations/<id>/` (inspiration.json, media/, analyse/, fiche.md, regles.json), `style/` (style.md, style.json), `bibliotheque/polices/`.
+Le dossier Cliplex de la personne : `outils/` (ffmpeg, Node, Python, modèles, studio, Claude Code s'il manquait), `projets/<id>/` (projet.json, rushs/, montage/), `scripts/<id>/` (script.json, script.md) et `scripts/prompteur.json`, `inspirations/<id>/` (inspiration.json, media/, analyse/, fiche.md, regles.json), `style/` (style.md, style.json), `bibliotheque/polices/`.
 
 Règles :
 - **L'app et `./cliplex` doivent rester d'accord** : mêmes fichiers, mêmes champs JSON, mêmes consignes. Un changement de format dans `src/main` se reporte dans `cliplex`, et inversement.
