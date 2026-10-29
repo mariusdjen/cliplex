@@ -28,6 +28,9 @@ dossier() {
   [ -z "$d" ] && [ -f "$REGLAGES" ] && d="$(plutil -extract dossier raw -o - "$REGLAGES" 2>/dev/null || true)"
   # Sans l'app : l'espace est dans le dépôt (dossier espace/, ignoré par Git). Supprimer le clone efface tout.
   if [ -z "$d" ] || [ "$d" == "null" ]; then echo "$DEPOT/espace"; return; fi
+  # Un dépôt Cliplex choisi comme dossier : son espace/ (même règle que src/main/reglages.ts).
+  if [ -f "$d/cliplex" ] && [ -d "$d/moteur/outils" ]; then echo "$d/espace"; return; fi
+  for s in outils projets inspirations style; do [ -d "$d/$s" ] && { echo "$d"; return; }; done
   [ "$(basename "$d" | tr '[:upper:]' '[:lower:]')" == "cliplex" ] || d="$d/Cliplex"
   echo "$d"
 }
@@ -54,7 +57,9 @@ ou() {
   case "$1" in
     ffmpeg)
       [ -x "$O/bin/ffmpeg" ] && { echo cliplex; return; }
-      command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null && ffmpeg -hide_banner -filters 2>/dev/null | grep -q arnndn && echo mac ;;
+      # Celui du Mac s'il a le débruiteur (arnndn) et -fps_mode (ffmpeg 5.1 et plus, -vsync a disparu en 9).
+      command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null && ffmpeg -hide_banner -filters 2>/dev/null | grep -q arnndn \
+        && ffmpeg -hide_banner -h long 2>/dev/null | grep -q fps_mode && echo mac ;;
     node)
       [ -x "$O/node/bin/node" ] && { echo cliplex; return; }
       command -v npm >/dev/null && [ "$(node -v 2>/dev/null | sed -E 's/^v([0-9]+).*/\1/')" -ge 18 ] 2>/dev/null && echo mac ;;

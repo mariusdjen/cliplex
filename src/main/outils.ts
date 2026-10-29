@@ -37,10 +37,12 @@ const DEFINITIONS: Definition[] = [
       return `mkdir -p "${b}" && cd "${b}" && for x in ffmpeg ffprobe; do curl -L --fail --progress-bar -o $x.zip https://ffmpeg.martin-riedl.de/redirect/latest/macos/${PUCE.ffmpeg}/release/$x.zip && unzip -oq $x.zip && rm $x.zip; done`
     },
     detecter: async () => {
-      // Celui de Cliplex, sinon celui du Mac s'il a le débruiteur de voix (filtre arnndn) et ffprobe.
+      // Celui de Cliplex, sinon celui du Mac s'il a le débruiteur de voix (filtre arnndn), ffprobe
+      // et l'option -fps_mode des scripts (ffmpeg 5.1 et plus : -vsync n'existe plus depuis ffmpeg 9).
       const r = await lancer('ffmpeg', ['-hide_banner', '-filters'])
       const v = await lancer('ffmpeg', ['-version'])
       if (!r.ok || !r.sortie.includes('arnndn') || !(await lancer('ffprobe', ['-version'])).ok) return null
+      if (!(await lancer('ffmpeg', ['-hide_banner', '-h', 'long'])).sortie.includes('fps_mode')) return null
       return { version: `${premiere(v.sortie, /ffmpeg version (\S+)/) ?? ''}${surLeMac(join(chemins().bin, 'ffmpeg'))}` }
     }
   },

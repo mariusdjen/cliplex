@@ -4,9 +4,10 @@
 #   analyse/dossier.md       format, durée, coupes, silences, transcription horodatée
 # Usage : mesurer.sh <dossier_inspiration>   (la vidéo est dans media/)
 set -e
+. "$(dirname "$0")/../outils/environnement.sh"
 D="$(cd "$1" && pwd)"; A="$D/analyse"
 V="$(ls "$D"/media/* | head -1)"; [ -f "$V" ] || { echo "Aucune vidéo dans media/"; exit 1; }
-PY="${CLIPLEX_OUTILS:?}/python/bin/python"; [ -x "$PY" ] || PY=python3
+PY="$CLIPLEX_OUTILS/python/bin/python"; [ -x "$PY" ] || PY=python3
 rm -rf "$A"; mkdir -p "$A/planches"
 DUREE=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$V")
 # 2 images par seconde pour une vidéo courte, moins pour une longue : 20 images par planche, 24 planches au plus.

@@ -4,9 +4,10 @@
 # Variables : CLIPLEX_STUDIO (studio Remotion installé), CLIPLEX_OUTILS (Python), CLIPLEX_SONS (défaut : kit du dépôt),
 # CLIPLEX_MUSIQUE / CLIPLEX_NAVIGATEUR (facultatives), LIMITE (secondes sans progrès avant d'arrêter un morceau, défaut 300).
 set -e
-ICI="$(cd "$(dirname "$0")" && pwd)"; M="$(cd "$1" && pwd)"; STUDIO="${CLIPLEX_STUDIO:-$ICI/../studio}"
+ICI="$(cd "$(dirname "$0")" && pwd)"; . "$ICI/environnement.sh" studio
+M="$(cd "$1" && pwd)"; STUDIO="$CLIPLEX_STUDIO"
 export CLIPLEX_SONS="${CLIPLEX_SONS:-$ICI/../sons}"
-PY="${CLIPLEX_OUTILS:-}/python/bin/python"; [ -x "$PY" ] || PY=python3
+PY="$CLIPLEX_OUTILS/python/bin/python"; [ -x "$PY" ] || PY=python3
 "$PY" -I "$ICI/compiler.py" "$M"
 PUBLIC="$(dirname "$M")/.$(basename "$M").public"
 SCALE=${ECHELLE:-1}; [ "$2" == "--brouillon" ] && SCALE=0.5
@@ -94,6 +95,6 @@ ffmpeg -hide_banner -loglevel error -y -i "$M/_brut.mp4" -c:v copy \
 rm -f "$M/_brut.mp4"
 # Contrôle : planches 2 images/s + mesure finale
 mkdir -p "$M/controle"; rm -f "$M"/controle/*.jpg
-ffmpeg -hide_banner -loglevel error -i "$M/$SORTIE" -vf "fps=2,scale=216:-2,tile=6x4:padding=4:color=white" -vsync vfr "$M/controle/planche_%02d.jpg"
+ffmpeg -hide_banner -loglevel error -i "$M/$SORTIE" -vf "fps=2,scale=216:-2,tile=6x4:padding=4:color=white" -fps_mode vfr "$M/controle/planche_%02d.jpg"
 ffmpeg -hide_banner -i "$M/$SORTIE" -af ebur128=peak=true -f null - 2>&1 | grep -A12 Summary | grep -E " I:| Peak:" | tr -s ' '
 echo "OK → $M/$SORTIE"

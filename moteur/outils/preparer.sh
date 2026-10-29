@@ -8,7 +8,7 @@
 #   rN/silences.txt     silences détectés
 set -e
 # Outils installés par Cliplex : CLIPLEX_OUTILS (ffmpeg, modèle whisper, modèle RNNoise, Python avec numpy et whisper).
-ICI="$(cd "$(dirname "$0")" && pwd)"; OUTILS="${CLIPLEX_OUTILS:?CLIPLEX_OUTILS manquant}"
+ICI="$(cd "$(dirname "$0")" && pwd)"; . "$ICI/environnement.sh"; OUTILS="$CLIPLEX_OUTILS"
 PY="$OUTILS/python/bin/python"; [ -x "$PY" ] || PY=python3
 M="$1"; shift; mkdir -p "$M/sources"; i=1
 for R in "$@"; do
@@ -43,7 +43,7 @@ for R in "$@"; do
   # Parole/blancs calibrés sur le bruit de fond, puis transcription énoncé par énoncé (horodatages fiables)
   "$PY" "$ICI/vad.py" "$D/voix16k.wav" "$D"
   "$PY" -I "$ICI/transcrire.py" "$D" "$id" "${PROMPT:-}"
-  ffmpeg -hide_banner -loglevel error -y -i "$M/sources/$id.mp4" -vf "fps=1,scale=216:-2,tile=5x4:padding=4:color=white" -vsync vfr "$D/planches/p%02d.jpg"
+  ffmpeg -hide_banner -loglevel error -y -i "$M/sources/$id.mp4" -vf "fps=1,scale=216:-2,tile=5x4:padding=4:color=white" -fps_mode vfr "$D/planches/p%02d.jpg"
   i=$((i+1))
 done
 "$PY" -I "$ICI/mots.py" --fusion "$M"

@@ -4,6 +4,7 @@ import { homedir } from 'os'
 import { basename, join } from 'path'
 import type { Reglages } from '../shared/types'
 
+const DEJA_CLIPLEX = ['outils', 'projets', 'inspirations', 'style']
 const DEFAUT: Reglages = { accueilFini: false, objectifs: [], dossier: null }
 
 function fichier(): string {
@@ -29,8 +30,13 @@ export function ecrireReglages(partiel: Partial<Reglages>): Reglages {
 /**
  * Cliplex range tout dans un sous-dossier « Cliplex » du dossier choisi,
  * pour ne jamais éparpiller ses fichiers sur le Bureau ou dans Documents.
+ * Le dépôt cloné (il s'appelle aussi « cliplex ») garde ses fichiers dans espace/, comme ./cliplex :
+ * les outils déjà installés sans l'app sont retrouvés au lieu d'être réinstallés.
+ * Un dossier qui est déjà un dossier Cliplex (outils, projets, inspirations ou style) est gardé tel quel.
  */
 export function avecSousDossier(choisi: string): string {
+  if (existsSync(join(choisi, 'cliplex')) && existsSync(join(choisi, 'moteur', 'outils'))) return join(choisi, 'espace')
+  if (DEJA_CLIPLEX.some((s) => existsSync(join(choisi, s)))) return choisi
   return basename(choisi).toLowerCase() === 'cliplex' ? choisi : join(choisi, 'Cliplex')
 }
 
