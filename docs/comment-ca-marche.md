@@ -61,6 +61,12 @@ Claude rend un brouillon en demi-résolution, le regarde image par image et se c
 
 Seulement quand tu as validé : 4K (la plus nette) ou 1080p (plus rapide). Le son est masterisé. Une version déjà exportée n'est jamais écrasée.
 
+## Le prompteur, pour tourner
+
+Avant de tourner, écris ou colle ton script (page Tournage de l'app, ou `./cliplex script`). Cliplex ouvre une petite page sur ton Wi-Fi : tu la scannes avec ton téléphone, et le texte défile en grand pendant que tu parles. Touche l'écran pour lancer ou faire une pause, glisse le doigt pour revenir en arrière. Vitesse, taille du texte et miroir (pour une vitre de prompteur) se règlent sur le téléphone comme dans l'app. La page n'est lisible qu'avec le lien du QR code, qui change à chaque ouverture, et rien ne sort de ton réseau. Le même prompteur s'ouvre aussi dans une fenêtre du Mac.
+
+Bientôt : le texte avancera au rythme de ta voix, reconnue sur ton Mac.
+
 ## Où sont les fichiers
 
 Tout est dans un seul dossier : `espace/` dans le dépôt si tu utilises Claude Code seul, ou celui choisi dans l'app. `./cliplex dossier` te le montre. Le supprimer efface tout.
@@ -70,6 +76,8 @@ outils/                 ffmpeg, Node, Python, modèles, moteur d'animation
 inspirations/<nom>/     la vidéo, ses mesures, fiche.md, regles.json
 style/                  style.md (ton style), style.json (couleurs, polices, tes réponses)
 projets/<nom>/          rushs/, montage/ (plan, brouillon, montage.mp4, resume.md)
+scripts/<nom>/          script.md (le texte du prompteur), script.json (titre, dates)
+scripts/prompteur.json  vitesse, taille et miroir du prompteur
 bibliotheque/polices/   polices téléchargées ou déposées
 ```
 
@@ -77,7 +85,7 @@ Ce sont des fichiers normaux : tu peux les lire, les modifier, les sauvegarder.
 
 ## Les commandes, si tu veux les lancer toi-même
 
-`./cliplex` sans argument affiche l'aide. Les principales : `etat`, `installer`, `inspiration <fichier|lien>`, `projet`, `renommer`, `preparer`, `brouillon`, `exporter <id> 4k`.
+`./cliplex` sans argument affiche l'aide. Les principales : `etat`, `installer`, `inspiration <fichier|lien>`, `projet`, `renommer`, `preparer`, `brouillon`, `exporter <id> 4k`, `script <titre> [fichier]`, `prompteur <script>`.
 
 ## Si ton dossier est sur le Bureau, dans Documents ou Téléchargements
 

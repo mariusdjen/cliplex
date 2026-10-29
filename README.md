@@ -51,7 +51,8 @@ Version 0.1, en développement actif. macOS d'abord, Windows et Linux ensuite.
 | Moteur de montage automatique (formation, YouTube, courts, pubs) | Fait, en amélioration |
 | Inspirations (vidéos, images, liens YouTube) et style appris | Fait |
 | Idées, scripts et planning | À venir |
-| Prompteur sur téléphone, décor de tournage | À venir |
+| Prompteur sur téléphone ou sur le Mac (vitesse, taille, miroir) | Fait |
+| Prompteur guidé par la voix, décor de tournage | À venir |
 | Effets sonores libres (kit Cliplex, posés automatiquement) | Fait |
 | Animations sur mesure écrites par Claude pour chaque vidéo | Fait |
 | Musiques libres de droits | À venir |

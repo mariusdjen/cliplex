@@ -1,0 +1,521 @@
+<!doctype html>
+<!--
+  Le prompteur Cliplex : une page autonome, servie sur le réseau local par l'app (src/main/prompteur.ts)
+  ou par ./cliplex prompteur (moteur/prompteur/servir.py). Les deux servent les mêmes adresses :
+    GET  etat       { titre, texte, version, reglages }   le script ouvert et les réglages
+    POST reglages   { vitesse, taille, miroir }           enregistre les réglages (scripts/prompteur.json)
+-->
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#000000" />
+    <title>Prompteur Cliplex</title>
+    <style>
+      :root {
+        --taille: 56px;
+        --violet: #8e44e0;
+      }
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #000;
+        color: #f4f4f5;
+        font-family: 'Inter Variable', Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        overflow: hidden;
+        overscroll-behavior: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      #defile {
+        position: fixed;
+        inset: 0;
+        overflow-y: auto;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+      }
+      #defile::-webkit-scrollbar {
+        display: none;
+      }
+      #texte {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 30vh max(6vw, 24px) 75vh;
+        font-size: var(--taille);
+        line-height: 1.35;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        overflow-wrap: break-word;
+      }
+      body.miroir #texte {
+        transform: scaleX(-1);
+      }
+      #texte p {
+        margin: 0 0 0.9em;
+      }
+      #texte h2 {
+        margin: 1.2em 0 0.5em;
+        font-size: 0.42em;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #8c879a;
+      }
+      #texte .vide {
+        color: #6e6880;
+        font-size: 0.5em;
+      }
+      /* Ligne de lecture : là où tes yeux restent pendant que le texte monte. */
+      #repere {
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: 30%;
+        height: calc(var(--taille) * 1.35);
+        pointer-events: none;
+        background: rgba(255, 255, 255, 0.05);
+      }
+      #repere::before,
+      #repere::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        width: 0;
+        height: 0;
+        border: 9px solid transparent;
+        transform: translateY(-50%);
+      }
+      #repere::before {
+        left: 0;
+        border-left-color: var(--violet);
+      }
+      #repere::after {
+        right: 0;
+        border-right-color: var(--violet);
+      }
+      .voile {
+        position: fixed;
+        left: 0;
+        right: 0;
+        pointer-events: none;
+      }
+      #voile-haut {
+        top: 0;
+        height: 18%;
+        background: linear-gradient(#000, rgba(0, 0, 0, 0));
+      }
+      #voile-bas {
+        bottom: 0;
+        height: 30%;
+        background: linear-gradient(rgba(0, 0, 0, 0), #000);
+      }
+      #progression {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 3px;
+        width: 0;
+        background: var(--violet);
+      }
+      #compte {
+        position: fixed;
+        inset: 0;
+        display: none;
+        place-items: center;
+        font-size: 30vmin;
+        font-weight: 700;
+        pointer-events: none;
+        background: rgba(0, 0, 0, 0.82);
+      }
+      #compte.on {
+        display: grid;
+      }
+      /* Commandes, visibles à l'arrêt seulement. */
+      #barre {
+        position: fixed;
+        left: 50%;
+        bottom: max(16px, env(safe-area-inset-bottom));
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px;
+        border-radius: 14px;
+        background: rgba(30, 27, 38, 0.97);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: opacity 0.2s;
+        max-width: calc(100vw - 24px);
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      body.lecture #barre,
+      body.lecture #aide {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .groupe {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        padding: 0 4px;
+        flex: none;
+      }
+      .groupe span {
+        min-width: 64px;
+        text-align: center;
+        font-size: 12px;
+        color: #b4afc1;
+        line-height: 1.2;
+      }
+      .groupe span b {
+        display: block;
+        font-size: 15px;
+        color: #fff;
+      }
+      button {
+        font: inherit;
+        color: #fff;
+        background: transparent;
+        border: 0;
+        height: 44px;
+        min-width: 44px;
+        padding: 0 12px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        flex: none;
+      }
+      button:active,
+      button:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      button.on {
+        background: rgba(142, 68, 224, 0.28);
+        color: #e7d6fa;
+      }
+      button.principal {
+        background: var(--violet);
+      }
+      .sep {
+        width: 1px;
+        height: 28px;
+        background: rgba(255, 255, 255, 0.12);
+        flex: none;
+      }
+      /* Téléphone en portrait : les commandes passent sur deux lignes. */
+      @media (max-width: 600px) {
+        #barre {
+          left: 12px;
+          right: 12px;
+          transform: none;
+          flex-wrap: wrap;
+          justify-content: center;
+          row-gap: 4px;
+        }
+        #barre .sep {
+          display: none;
+        }
+        .groupe {
+          flex: 1 1 45%;
+          justify-content: space-between;
+        }
+        .groupe span {
+          min-width: 0;
+        }
+        #debut,
+        #miroir {
+          flex: 1 1 0;
+          order: 1;
+        }
+        #lancer {
+          flex: 2 1 0;
+          order: 1;
+        }
+      }
+      #aide {
+        position: fixed;
+        top: max(14px, env(safe-area-inset-top));
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 13px;
+        color: #8c879a;
+        transition: opacity 0.2s;
+        pointer-events: none;
+        padding: 0 16px;
+      }
+      #aide b {
+        color: #f4f4f5;
+        font-weight: 600;
+      }
+      #aide .alerte {
+        color: #f2a7a0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="defile"><div id="texte"></div></div>
+    <div id="voile-haut" class="voile"></div>
+    <div id="voile-bas" class="voile"></div>
+    <div id="repere"></div>
+    <div id="progression"></div>
+    <div id="aide"><b id="titre">Prompteur</b><br /><span id="consigne"></span></div>
+    <div id="compte"></div>
+    <div id="barre">
+      <button id="debut" title="Revenir au début (touche Début)">Début</button>
+      <div class="sep"></div>
+      <div class="groupe">
+        <button id="moins-vite" title="Moins vite (flèche bas)">−</button>
+        <span>Vitesse<b id="vitesse">3</b></span>
+        <button id="plus-vite" title="Plus vite (flèche haut)">+</button>
+      </div>
+      <div class="sep"></div>
+      <div class="groupe">
+        <button id="plus-petit" title="Texte plus petit (touche moins)">−</button>
+        <span>Taille<b id="taille">48</b></span>
+        <button id="plus-grand" title="Texte plus grand (touche plus)">+</button>
+      </div>
+      <div class="sep"></div>
+      <button id="miroir" title="Miroir, pour une vitre de prompteur (touche M)">Miroir</button>
+      <button id="lancer" class="principal">Lancer</button>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id)
+      const defile = $('defile')
+      const texte = $('texte')
+
+      let reglages = { vitesse: 3, taille: 48, miroir: false }
+      let version = null
+      let lecture = false
+      let pos = 0
+      let dernier = 0
+      let verrou = null
+      let compte = null
+      let envoi = null
+
+      const borne = (v, min, max) => Math.min(max, Math.max(min, v))
+      const echapper = (t) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+
+      // Paragraphes séparés par une ligne vide ; une ligne qui commence par # devient un repère de partie.
+      function mettreEnPage(t) {
+        const blocs = t.replace(/\r/g, '').split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean)
+        if (!blocs.length) return '<p class="vide">Écris ton script dans Cliplex : il apparaîtra ici.</p>'
+        return blocs
+          .map((b) => {
+            const lignes = b.split('\n')
+            const titres = []
+            while (lignes.length && /^#+\s*/.test(lignes[0])) titres.push(`<h2>${echapper(lignes.shift().replace(/^#+\s*/, ''))}</h2>`)
+            const corps = lignes.length ? `<p>${lignes.map(echapper).join('<br>')}</p>` : ''
+            return titres.join('') + corps
+          })
+          .join('')
+      }
+
+      function appliquer() {
+        document.documentElement.style.setProperty('--taille', `${reglages.taille}px`)
+        document.body.classList.toggle('miroir', !!reglages.miroir)
+        $('vitesse').textContent = reglages.vitesse.toLocaleString('fr-FR')
+        $('taille').textContent = reglages.taille
+        $('miroir').classList.toggle('on', !!reglages.miroir)
+      }
+
+      function changer(partiel) {
+        const avant = defile.scrollHeight
+        reglages = { ...reglages, ...partiel }
+        reglages.vitesse = borne(Math.round(reglages.vitesse * 2) / 2, 0.5, 10)
+        reglages.taille = borne(Math.round(reglages.taille), 24, 160)
+        appliquer()
+        // Le texte change de hauteur avec la taille : on garde la même phrase sur la ligne de lecture.
+        if (partiel.taille && avant) {
+          pos = (pos * defile.scrollHeight) / avant
+          defile.scrollTop = pos
+        }
+        clearTimeout(envoi)
+        envoi = setTimeout(() => {
+          fetch('reglages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reglages) })
+            .then((r) => r.json())
+            .then((r) => (reglages.majLe = r.majLe))
+            .catch(() => {})
+        }, 400)
+      }
+
+      function consigne(t, alerte) {
+        $('consigne').textContent = t
+        $('consigne').className = alerte ? 'alerte' : ''
+      }
+
+      // Vitesse 1 = environ 0,15 ligne par seconde : la même cadence de lecture quelle que soit la taille.
+      function pas(t) {
+        if (!lecture) return
+        const dt = Math.min(0.1, (t - dernier) / 1000)
+        dernier = t
+        pos += dt * reglages.vitesse * 0.15 * reglages.taille * 1.35
+        const max = defile.scrollHeight - defile.clientHeight
+        if (pos >= max) {
+          pos = max
+          arreter()
+        }
+        defile.scrollTop = pos
+        progression()
+        requestAnimationFrame(pas)
+      }
+
+      function progression() {
+        const max = defile.scrollHeight - defile.clientHeight
+        $('progression').style.width = `${max > 0 ? (100 * defile.scrollTop) / max : 0}%`
+      }
+
+      async function garderEveille() {
+        try {
+          verrou = await navigator.wakeLock?.request('screen')
+        } catch {}
+      }
+
+      function demarrer() {
+        if (lecture || compte) return
+        pos = defile.scrollTop
+        // Compte à rebours au début du texte, le temps de se mettre en place.
+        if (pos < 4) {
+          let n = 3
+          const el = $('compte')
+          el.textContent = n
+          el.classList.add('on')
+          document.body.classList.add('lecture')
+          compte = setInterval(() => {
+            n--
+            if (n > 0) return (el.textContent = n)
+            clearInterval(compte)
+            compte = null
+            el.classList.remove('on')
+            lancer()
+          }, 800)
+        } else lancer()
+        garderEveille()
+        plein()
+      }
+
+      function lancer() {
+        lecture = true
+        document.body.classList.add('lecture')
+        $('lancer').textContent = 'Pause'
+        dernier = performance.now()
+        requestAnimationFrame(pas)
+      }
+
+      function arreter() {
+        if (compte) {
+          clearInterval(compte)
+          compte = null
+          $('compte').classList.remove('on')
+        }
+        lecture = false
+        document.body.classList.remove('lecture')
+        $('lancer').textContent = defile.scrollTop > 4 ? 'Reprendre' : 'Lancer'
+        consigneNormale()
+        verrou?.release?.()
+        verrou = null
+      }
+
+      // Au toucher sur le téléphone, au clic ou à la barre d'espace sur l'ordinateur.
+      const geste = matchMedia('(pointer: coarse)').matches ? 'Touche l’écran' : 'Clique ou appuie sur espace'
+      const consigneNormale = () => consigne(defile.scrollTop > 4 ? `En pause. ${geste} pour reprendre` : `${geste} pour lancer`)
+
+      const basculer = () => (lecture || compte ? arreter() : demarrer())
+
+      function plein() {
+        const d = document.documentElement
+        if (!document.fullscreenElement && d.requestFullscreen && matchMedia('(pointer: coarse)').matches) d.requestFullscreen().catch(() => {})
+      }
+
+      function debut() {
+        pos = 0
+        defile.scrollTop = 0
+        progression()
+        arreter()
+      }
+
+      // Toucher l'écran : départ ou pause. Glisser le doigt : avancer ou reculer à la main.
+      let appui = null
+      defile.addEventListener('pointerdown', (e) => (appui = { y: e.clientY, t: Date.now() }))
+      defile.addEventListener('pointerup', (e) => {
+        if (appui && Math.abs(e.clientY - appui.y) < 10 && Date.now() - appui.t < 500) basculer()
+        appui = null
+      })
+      defile.addEventListener('touchmove', () => lecture && arreter(), { passive: true })
+      defile.addEventListener('wheel', () => lecture && arreter(), { passive: true })
+      defile.addEventListener('scroll', () => {
+        if (!lecture) pos = defile.scrollTop
+        progression()
+      })
+
+      $('lancer').onclick = basculer
+      $('debut').onclick = debut
+      $('plus-vite').onclick = () => changer({ vitesse: reglages.vitesse + 0.5 })
+      $('moins-vite').onclick = () => changer({ vitesse: reglages.vitesse - 0.5 })
+      $('plus-grand').onclick = () => changer({ taille: reglages.taille + 6 })
+      $('plus-petit').onclick = () => changer({ taille: reglages.taille - 6 })
+      $('miroir').onclick = () => changer({ miroir: !reglages.miroir })
+
+      // Clavier, pour le prompteur dans une fenêtre de l'ordinateur.
+      addEventListener('keydown', (e) => {
+        const actions = {
+          ' ': basculer,
+          Enter: basculer,
+          ArrowUp: () => changer({ vitesse: reglages.vitesse + 0.5 }),
+          ArrowDown: () => changer({ vitesse: reglages.vitesse - 0.5 }),
+          '+': () => changer({ taille: reglages.taille + 6 }),
+          '=': () => changer({ taille: reglages.taille + 6 }),
+          '-': () => changer({ taille: reglages.taille - 6 }),
+          m: () => changer({ miroir: !reglages.miroir }),
+          M: () => changer({ miroir: !reglages.miroir }),
+          Home: debut
+        }
+        if (actions[e.key]) {
+          e.preventDefault()
+          actions[e.key]()
+        }
+      })
+
+      // Le script et les réglages suivent ce qui change dans Cliplex, sans recharger la page.
+      async function suivre() {
+        try {
+          const r = await fetch('etat', { cache: 'no-store' })
+          if (r.status === 404) return consigne('Ce lien n’est plus valable : rouvre le prompteur depuis Cliplex', true)
+          const e = await r.json()
+          document.title = `${e.titre || 'Prompteur'} · Cliplex`
+          $('titre').textContent = e.titre || 'Prompteur'
+          if (e.version !== version) {
+            const max = defile.scrollHeight - defile.clientHeight
+            const part = version !== null && max > 0 ? pos / max : 0
+            version = e.version
+            texte.innerHTML = mettreEnPage(e.texte || '')
+            pos = part * (defile.scrollHeight - defile.clientHeight)
+            defile.scrollTop = pos
+          }
+          if (e.reglages && (!reglages.majLe || (e.reglages.majLe && e.reglages.majLe > reglages.majLe))) {
+            reglages = { ...reglages, ...e.reglages }
+            appliquer()
+          }
+          if ($('consigne').className === 'alerte') consigneNormale()
+        } catch {
+          consigne('Connexion perdue avec Cliplex. Le texte reste lisible', true)
+        }
+      }
+
+      appliquer()
+      consigneNormale()
+      suivre()
+      setInterval(suivre, 1500)
+    </script>
+  </body>
+</html>

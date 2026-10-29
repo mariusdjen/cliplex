@@ -147,6 +147,35 @@ export interface LigneMontage extends Activite {
   etape: EtapeMontage
 }
 
+/** Un script à lire au prompteur : <dossier>/scripts/<id>/script.json, et le texte dans script.md. */
+export interface Script {
+  id: string
+  titre: string
+  /** Contenu de script.md : paragraphes séparés par une ligne vide, « # Partie » pour un repère. */
+  texte: string
+  creeLe: string
+  majLe: string
+}
+
+/** Réglages du prompteur, partagés par tous les scripts : <dossier>/scripts/prompteur.json. */
+export interface ReglagesPrompteur {
+  /** De 0,5 à 10 : environ 0,15 ligne par seconde par point. */
+  vitesse: number
+  /** Taille du texte en pixels, de 24 à 160. */
+  taille: number
+  /** Texte inversé, pour une vitre de prompteur. */
+  miroir: boolean
+  majLe?: string
+}
+
+/** Prompteur ouvert : adresses de la page, sur le téléphone (même Wi-Fi) et sur l'ordinateur. */
+export interface Prompteur {
+  script: string
+  /** Null quand l'ordinateur n'est sur aucun réseau. */
+  telephone: string | null
+  ordinateur: string
+}
+
 export interface Api {
   reglages: {
     lire(): Promise<Reglages>
@@ -194,6 +223,22 @@ export interface Api {
     ouvrirDossier(id: string): Promise<void>
     /** Adresse lisible par la balise <video> pour un fichier du projet. */
     adresse(id: string, fichier: string): string
+  }
+  scripts: {
+    lister(): Promise<Script[]>
+    creer(titre: string): Promise<Script>
+    modifier(id: string, partiel: Partial<Pick<Script, 'titre' | 'texte'>>): Promise<Script>
+    /** Le script part à la corbeille du Mac. */
+    supprimer(id: string): Promise<void>
+  }
+  prompteur: {
+    /** Lance le serveur local si besoin et y place ce script. */
+    ouvrir(id: string): Promise<Prompteur>
+    /** Le même prompteur dans une fenêtre de l'ordinateur. */
+    fenetre(id: string): Promise<void>
+    arreter(): Promise<void>
+    reglages(): Promise<ReglagesPrompteur>
+    ecrireReglages(partiel: Partial<ReglagesPrompteur>): Promise<ReglagesPrompteur>
   }
   montage: {
     lancer(id: string): Promise<Projet>

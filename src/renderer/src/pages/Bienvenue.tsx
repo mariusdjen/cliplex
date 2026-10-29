@@ -20,7 +20,7 @@ const OBJECTIFS: { id: Objectif; icone: NomIcone; titre: string; texte: string }
   { id: 'courts', icone: 'vertical', titre: 'Shorts, Reels, TikTok', texte: 'Formats verticaux courts, rythmés, prêts à publier.' },
   { id: 'montage', icone: 'lecture', titre: 'Monter vite', texte: 'Tu déposes ton rush déjà coupé, Cliplex fait le montage.' },
   { id: 'planification', icone: 'calendrier', titre: 'Planifier mes contenus', texte: 'Idées, scripts et calendrier de publication. Bientôt.' },
-  { id: 'tournage', icone: 'telephone', titre: 'Tourner avec le prompteur', texte: 'Ton script qui défile sur ton téléphone. Bientôt.' }
+  { id: 'tournage', icone: 'telephone', titre: 'Tourner avec le prompteur', texte: 'Ton script qui défile en grand sur ton téléphone pendant que tu parles.' }
 ]
 
 export function Bienvenue({ reglages, onFini }: { reglages: Reglages; onFini: (r: Reglages) => void }) {

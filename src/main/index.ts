@@ -3,12 +3,14 @@ import { is } from '@electron-toolkit/utils'
 import { writeFileSync } from 'fs'
 import { join, normalize } from 'path'
 import { pathToFileURL } from 'url'
-import type { Activite, Genre, LigneJournal, Projet, Qualite, Reglages } from '../shared/types'
+import type { Activite, Genre, LigneJournal, Projet, Qualite, Reglages, ReglagesPrompteur, Script } from '../shared/types'
 import { connecterClaude, etatChrome, etatClaude, installerExtension } from './claude'
 import { installerOutil, listerOutils } from './outils'
 import { copierRushs, creerProjet, dossierProjet, listerProjets, modifierProjet } from './projets'
 import { avecSousDossier, ecrireReglages, lireReglages } from './reglages'
 import { arreterMontage, exporterMontage, lancerMontage, retoucherMontage } from './moteur'
+import { arreterPrompteur, fenetrePrompteur, ouvrirPrompteur } from './prompteur'
+import { creerScript, ecrireReglagesPrompteur, lireReglagesPrompteur, listerScripts, modifierScript, supprimerScript } from './scripts'
 import {
   ajouterFichiers,
   ajouterLien,
@@ -122,6 +124,17 @@ function brancherIpc(): void {
     return r.canceled ? modifierProjet(id, {}) : copierRushs(id, r.filePaths)
   })
   ipcMain.handle('projets:ouvrirDossier', (_e, id: string) => shell.openPath(dossierProjet(id)))
+
+  ipcMain.handle('scripts:lister', () => listerScripts())
+  ipcMain.handle('scripts:creer', (_e, titre: string) => creerScript(titre))
+  ipcMain.handle('scripts:modifier', (_e, id: string, partiel: Partial<Pick<Script, 'titre' | 'texte'>>) => modifierScript(id, partiel))
+  ipcMain.handle('scripts:supprimer', (_e, id: string) => supprimerScript(id))
+
+  ipcMain.handle('prompteur:ouvrir', (_e, id: string) => ouvrirPrompteur(id))
+  ipcMain.handle('prompteur:fenetre', (_e, id: string) => fenetrePrompteur(id))
+  ipcMain.handle('prompteur:arreter', () => arreterPrompteur())
+  ipcMain.handle('prompteur:reglages', () => lireReglagesPrompteur())
+  ipcMain.handle('prompteur:ecrireReglages', (_e, partiel: Partial<ReglagesPrompteur>) => ecrireReglagesPrompteur(partiel))
 
   ipcMain.handle('montage:lancer', (_e, id: string) =>
     lancerMontage(id, (etape, a) => fenetre?.webContents.send('montage:journal', { id, etape, ...a }))

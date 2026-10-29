@@ -52,6 +52,19 @@ const api: Api = {
     ouvrirDossier: (id) => ipcRenderer.invoke('projets:ouvrirDossier', id),
     adresse: (id, fichier) => `cliplex-fichier://projet/${encodeURIComponent(id)}/${fichier.split('/').map(encodeURIComponent).join('/')}`
   },
+  scripts: {
+    lister: () => ipcRenderer.invoke('scripts:lister'),
+    creer: (titre) => ipcRenderer.invoke('scripts:creer', titre),
+    modifier: (id, partiel) => ipcRenderer.invoke('scripts:modifier', id, partiel),
+    supprimer: (id) => ipcRenderer.invoke('scripts:supprimer', id)
+  },
+  prompteur: {
+    ouvrir: (id) => ipcRenderer.invoke('prompteur:ouvrir', id),
+    fenetre: (id) => ipcRenderer.invoke('prompteur:fenetre', id),
+    arreter: () => ipcRenderer.invoke('prompteur:arreter'),
+    reglages: () => ipcRenderer.invoke('prompteur:reglages'),
+    ecrireReglages: (partiel) => ipcRenderer.invoke('prompteur:ecrireReglages', partiel)
+  },
   montage: {
     lancer: (id) => ipcRenderer.invoke('montage:lancer', id),
     retoucher: (id, demande) => ipcRenderer.invoke('montage:retoucher', id, demande),
